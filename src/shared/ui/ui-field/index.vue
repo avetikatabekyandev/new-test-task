@@ -16,6 +16,7 @@ defineProps<{ field: Field }>()
 
 <style lang="scss" scoped>
 .field {
+  width: 100%;
   background: #232532;
   padding: 16px;
   color: #fff;

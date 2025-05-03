@@ -36,12 +36,46 @@ export function useGroupManager(initial: Field[][]) {
     function onDragOverField(gIndex: number, fIndex: number, event: DragEvent) {
         const rect = (event.target as HTMLElement).getBoundingClientRect()
         const offsetX = event.clientX - rect.left
-        const position = offsetX < rect.width / 2 ? 'left' : 'right'
-        hover.value = { groupIndex: gIndex, fieldIndex: fIndex, zone: position }
+        const zone = offsetX < rect.width / 2 ? 'left' : 'right'
+        hover.value = { groupIndex: gIndex, fieldIndex: fIndex, zone }
+    }
+
+    function onDragOverFieldZone(gIndex: number, fIndex: number, zone: 'left' | 'right') {
+        if (!isDragging.value) return
+        if (
+            fromGroupIndex.value === gIndex &&
+            dragged.value &&
+            groups.value[gIndex]?.[fIndex]?.id === dragged.value.id
+        ) return
+        hover.value = { groupIndex: gIndex, fieldIndex: fIndex, zone }
+    }
+
+    function onDropFieldZone(gIndex: number, fIndex: number, zone: 'left' | 'right') {
+        if (!dragged.value || fromGroupIndex.value === null) return
+        if (
+            fromGroupIndex.value === gIndex &&
+            groups.value[gIndex]?.[fIndex]?.id === dragged.value.id
+        ) return
+
+        wasDropped = true
+        const insertIndex = zone === 'left' ? fIndex : fIndex + 1
+
+        pendingDrop = {
+            from: fromGroupIndex.value,
+            to: gIndex,
+            field: dragged.value,
+            index: insertIndex,
+        }
+
+        commitDrop()
     }
 
     function onDropOnField(gIndex: number, fIndex: number) {
         if (!dragged.value || fromGroupIndex.value === null || !hover.value.zone) return
+        if (
+            fromGroupIndex.value === gIndex &&
+            groups.value[gIndex]?.[fIndex]?.id === dragged.value.id
+        ) return
 
         wasDropped = true
         const insertIndex = hover.value.zone === 'left' ? fIndex : fIndex + 1
@@ -65,7 +99,6 @@ export function useGroupManager(initial: Field[][]) {
         if (!dragged.value || fromGroupIndex.value === null) return
 
         wasDropped = true
-
         pendingDrop = {
             from: fromGroupIndex.value,
             to: zone === 'top' ? gIndex : gIndex + 1,
@@ -112,34 +145,23 @@ export function useGroupManager(initial: Field[][]) {
         clear()
     }
 
-    function getZoneClass(groupIndex: number, zone: 'top' | 'bottom') {
-        const fromIndex = fromGroupIndex.value
-        const draggingField = dragged.value
-
+    function getZoneClass(
+        groupIndex: number,
+        fieldIndex: number | null,
+        zone: 'left' | 'right' | 'top' | 'bottom'
+    ) {
+        if (!isDragging.value || hover.value.zone !== zone) return false
         if (
-            zone === 'top' &&
-            groupIndex === 0 &&
-            fromIndex === 0
-        ) {
-            return false
-        }
-
-        const isLastGroup = groupIndex === groups.value.length
-        if (
-            zone === 'bottom' &&
-            isLastGroup &&
-            fromIndex === groups.value.length - 1 &&
-            draggingField &&
-            groups.value[fromIndex]?.[groups.value[fromIndex].length - 1]?.id === draggingField.id
-        ) {
-            return false
-        }
+            fromGroupIndex.value === groupIndex &&
+            dragged.value &&
+            fieldIndex !== null &&
+            groups.value[groupIndex]?.[fieldIndex]?.id === dragged.value.id
+        ) return false
 
         return (
-            isDragging.value &&
             hover.value.groupIndex === groupIndex &&
-            hover.value.zone === zone &&
-            hover.value.fieldIndex === null
+            hover.value.fieldIndex === fieldIndex &&
+            hover.value.zone === zone
         )
     }
 
@@ -165,14 +187,7 @@ export function useGroupManager(initial: Field[][]) {
     }
 
     function onDragEnd() {
-        isDragging.value = false
-        dragged.value = null
-        fromGroupIndex.value = null
-        hover.value = {
-            groupIndex: null,
-            fieldIndex: null,
-            zone: null,
-        }
+        clear()
     }
 
     return {
@@ -180,10 +195,12 @@ export function useGroupManager(initial: Field[][]) {
         onDragStart,
         onDragOverField,
         onDropOnField,
+        onDragOverFieldZone,
+        onDropFieldZone,
         onDragOverZone,
         onDropZone,
         getZoneClass,
-        isDragging,
         onDragEnd,
+        isDragging,
     }
 }

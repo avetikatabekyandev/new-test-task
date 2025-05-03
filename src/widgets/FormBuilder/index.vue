@@ -4,31 +4,48 @@
       <DropZone
           position="top"
           :groupIndex="gIndex"
-          :active="getZoneClass(gIndex, 'top')"
+          :active="getZoneClass(gIndex, null, 'top')"
           @dragover.prevent="onDragOverZone(gIndex, 'top')"
           @drop.prevent="onDropZone(gIndex, 'top')"
       />
 
       <div
           class="form-grid__group"
-          :style="{ gridTemplateColumns: `repeat(${group.length}, 1fr)` }"
       >
-        <UiField
-            v-for="(field, fIndex) in group"
-            :key="field.id"
-            :field="field"
-            @dragstart="onDragStart(field, gIndex)"
-            @dragend="onDragEnd"
-            @dragover.prevent="onDragOverField(gIndex, fIndex, $event)"
-            @drop.prevent="onDropOnField(gIndex, fIndex)"
-        />
+        <template v-for="(field, fIndex) in group" :key="field.id">
+          <DropZone
+              position="left"
+              :groupIndex="gIndex"
+              :fieldIndex="fIndex"
+              :active="getZoneClass(gIndex, fIndex, 'left')"
+              @dragover.prevent="onDragOverFieldZone(gIndex, fIndex, 'left')"
+              @drop.prevent="onDropFieldZone(gIndex, fIndex, 'left')"
+          />
+
+          <UiField
+              :field="field"
+              @dragstart="onDragStart(field, gIndex)"
+              @dragend="onDragEnd"
+              @dragover.prevent="onDragOverField(gIndex, fIndex, $event)"
+              @drop.prevent="onDropOnField(gIndex, fIndex)"
+          />
+
+          <DropZone
+              position="right"
+              :groupIndex="gIndex"
+              :fieldIndex="fIndex"
+              :active="getZoneClass(gIndex, fIndex, 'right')"
+              @dragover.prevent="onDragOverFieldZone(gIndex, fIndex, 'right')"
+              @drop.prevent="onDropFieldZone(gIndex, fIndex, 'right')"
+          />
+        </template>
       </div>
     </template>
 
     <DropZone
         position="bottom"
         :groupIndex="groups.length"
-        :active="getZoneClass(groups.length, 'bottom')"
+        :active="getZoneClass(groups.length, null, 'bottom')"
         @dragover.prevent="onDragOverZone(groups.length, 'bottom')"
         @drop.prevent="onDropZone(groups.length, 'bottom')"
     />
@@ -53,12 +70,14 @@ const {
   onDropOnField,
   onDragOverZone,
   onDropZone,
+  onDragOverFieldZone,
+  onDropFieldZone,
   getZoneClass,
   onDragEnd
 } = useGroupManager(props.initial)
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .form-grid {
   display: flex;
   flex-direction: column;
@@ -67,7 +86,7 @@ const {
   border-radius: 3px;
 
   &__group {
-    display: grid;
+    display: flex;
     gap: 12px;
   }
 }
